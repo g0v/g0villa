@@ -17,35 +17,29 @@
 }
 
 @font-face {
-    font-family: 'Open Sans';
-    src: url('/media/fonts/OpenSans-Regular-webfont.eot');
-    src: url('/media/fonts/OpenSans-Regular-webfont.eot?#iefix') format('embedded-opentype'),
-         url('/media/fonts/OpenSans-Regular-webfont.woff') format('woff'),
-         url('/media/fonts/OpenSans-Regular-webfont.ttf') format('truetype'),
-         url('/media/fonts/OpenSans-Regular-webfont.svg#OpenSansRegular') format('svg');
-    font-weight: normal;
-    font-style: normal;
-}
-
-@font-face {
-    font-family: 'Open Sans';
-    src: url('/media/fonts/OpenSans-Semibold-webfont.eot');
-    src: url('/media/fonts/OpenSans-Semibold-webfont.eot?#iefix') format('embedded-opentype'),
-         url('/media/fonts/OpenSans-Semibold-webfont.woff') format('woff'),
-         url('/media/fonts/OpenSans-Semibold-webfont.ttf') format('truetype'),
-         url('/media/fonts/OpenSans-Semibold-webfont.svg#OpenSansSemibold') format('svg');
-    font-weight: bold;
-    font-style: normal;
-}
-
-@font-face {
     font-family: 'Open Sans Light';
-    src: url('/media/fonts/OpenSans-Light-webfont.eot');
     src: url('/media/fonts/OpenSans-Light-webfont.eot?#iefix') format('embedded-opentype'),
          url('/media/fonts/OpenSans-Light-webfont.woff') format('woff'),
-         url('/media/fonts/OpenSans-Light-webfont.ttf') format('truetype'),
-         url('/media/fonts/OpenSans-Light-webfont.svg#OpenSansLight') format('svg');
+         url('/media/fonts/OpenSans-Light-webfont.ttf') format('truetype');
     font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Open Sans';
+    src: url('/media/fonts/OpenSans-Regular-webfont.eot?#iefix') format('embedded-opentype'),
+         url('/media/fonts/OpenSans-Regular-webfont.woff') format('woff'),
+         url('/media/fonts/OpenSans-Regular-webfont.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Open Sans';
+    src: url('/media/fonts/OpenSans-Bold-webfont.eot?#iefix') format('embedded-opentype'),
+         url('/media/fonts/OpenSans-Bold-webfont.woff') format('woff'),
+         url('/media/fonts/OpenSans-Bold-webfont.ttf') format('truetype');
+    font-weight: bold;
     font-style: normal;
 }
 
@@ -61,7 +55,6 @@
     position: relative;
     text-indent: -2000px;
     overflow: hidden;
-    z-index: 999;
 }
 
 #tabzilla:after {
@@ -102,7 +95,6 @@
     color: #484848;
     position: relative;
     overflow: hidden;
-    direction: ltr;
     zoom: 1;
 }
 
@@ -110,11 +102,19 @@
     outline:none;
 }
 
+/* Tabzilla still must use content-box model to preserve layout */
+#tabzilla-panel *,
+#tabzilla-panel *:before,
+#tabzilla-panel *:after {
+    -webkit-box-sizing: content-box;
+       -moz-box-sizing: content-box;
+            box-sizing: content-box;
+}
+
 #tabzilla-contents {
     width: 960px;
     margin: 0 auto;
     padding: 0 10px;
-    text-align: left;
     position: relative;
     display:none;
 }
@@ -182,7 +182,6 @@
     font-size: 13px;
     font-weight: bold;
     margin-bottom: .4em;
-    word-wrap: break-word;
 }
 
 #tabzilla-panel #tabzilla-nav h2 {
@@ -190,6 +189,7 @@
     font-size: 13px;
     margin: 0 20px .4em 0;
     word-wrap: break-word;
+    letter-spacing: -1px;
 }
 
 #tabzilla-panel #tabzilla-nav ul {
@@ -225,6 +225,20 @@
     display: block;
     padding: .4em 20px .4em 0;
     outline: 0;
+
+    &.donate {
+        color: rgb(175,50,50); // @linkRed in sandstone/lib.less
+        &:after {
+            content: " ";
+            width: 12px;
+            height: 10px;
+            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAKCAYAAAH3K49sAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyRpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoTWFjaW50b3NoKSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDoyREMxNTU2NTU0QUMxMUUzOUY4NUE3MkQzQjY2QkQ0NiIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDoyREMxNTU2NjU0QUMxMUUzOUY4NUE3MkQzQjY2QkQ0NiI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOjJEQzE1NTYzNTRBQzExRTM5Rjg1QTcyRDNCNjZCRDQ2IiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjJEQzE1NTY0NTRBQzExRTM5Rjg1QTcyRDNCNjZCRDQ2Ii8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+Sq/oBwAAAM5JREFUeNpi3GioxwAEi5kYICAJIIAYgCIxIN4dgABiBLJYgYxfIHGAAAJxYoD0EiC2AEkvBuL/QHwcxGGE6mYECCCQMk0g4xoDGgCpug7EXmjibAABBLNlNxC7ArExEAcCcTkLzGokGgTMQUbdZ8AEc0ASSmiCB0FuhnmOEaqzC4gdQAIAAcYI9f4BILZH0gVSdBSIY9BMswQ5ygJNMQgoQjE6WAay+gRIJwNhAHKrMsytJ6Du9cKhkA3qh/9MaJLboRploR5lhCr8DVMAAFQEJaGmZBr7AAAAAElFTkSuQmCC');
+            background-size: 12px 10px;
+            background-repeat: no-repeat;
+            background-position: right center;
+            padding-left: 16px;
+        }
+    }
 }
 
 #tabzilla-panel a,
@@ -267,6 +281,7 @@
     -moz-transition: all .2s linear;
     -webkit-transition: all .2s linear;
     transition: all .2s linear;
+    font-size: 12px;
 }
 
 #tabzilla-panel #tabzilla-nav ul li#tabzilla-search input:hover {
@@ -293,6 +308,50 @@
 
 #tabzilla-panel #tabzilla-nav ul li#tabzilla-search input::-webkit-input-placeholder { color: #ddd; }
 #tabzilla-panel #tabzilla-nav ul li#tabzilla-search input:-moz-placeholder           { color: #ddd; }
+
+#tabzilla-infobar {
+    position: relative;
+    overflow: hidden;
+    margin: 0 auto;
+    width: 940px;
+    font-size: 12px;
+    line-height: 1.5;
+
+    div {
+        padding: 5px 0;
+    }
+
+    p, li {
+        display: inline;
+        margin: 0 10px 0 0;
+    }
+
+    ul {
+        display: inline;
+        margin: 0;
+        list-style-type: none;
+    }
+
+    button {
+        background-color: #f1f8ff;
+        border: 1px solid darken(#f1f8ff, 10%);
+        cursor: pointer;
+        border-radius: 3px;
+        white-space: nowrap;
+
+        &:hover,
+        &:focus {
+            background-color: darken(#f1f8ff, 3%);
+            border-color: darken(#f1f8ff, 13%);
+        }
+    }
+
+    &[dir="rtl"] {
+        p, li {
+            margin: 0 0 0 10px;
+        }
+    }
+}
 
 // Firefox Flicks Promo
 
@@ -339,13 +398,40 @@
 	left: -400px;
 }
 
+#tabzilla-promo .snippet#tabzilla-promo-mwc a {
+    background-image: url('/media/img/tabzilla/promo-mwc-2014.jpg');
+    background-position: 0 0;
+    background-color: #226aa7;
+    color: #fff;
+    font-size: 12px;
+    padding: 5px 10px 10px;
+    height: 200px;
+    line-height: 20px;
+    h4 {
+        text-shadow: none;
+        color: #fff;
+        font-family: Open Sans ExtraBoldItalic;
+        text-transform: uppercase;
+        letter-spacing: -1px;
+        font-weight: normal;
+        font-size: 48px;
+        line-height: 46px;
+        margin-bottom: 30px;
+    }
+    p {
+        font-size: 16px;
+        width: 110px;
+        padding-left: 5px;
+    }
+}
+
 #tabzilla-promo .snippet#tabzilla-promo-fxos a {
     background-image: url('/media/img/tabzilla/promo-fxos.png');
     background-position: 0 0;
     background-color: #226aa7;
     color: #fff;
     font-size: 12px;
-    padding: 20px;
+    padding: 20px 80px 20px 20px;
     height: 170px;
     line-height: 20px;
     h4 {
@@ -353,25 +439,159 @@
         color: #fff;
         font-family: Open Sans ExtraBoldItalic;
         text-transform: uppercase;
-        letter-spacing: -3px;
+        letter-spacing: -.1ex;
         font-weight: normal;
-        font-size: 54px;
-        line-height: 46px;
-        margin-top: 10px;
-        margin-bottom: 20px;
+        font-size: 40px;
+        line-height: 1;
+        margin-bottom: 10px;
     }
     p {
         font-size: 18px;
-        width: 150px;
     }
 }
 
-html[lang=ru] {
-    #tabzilla-promo .snippet#tabzilla-promo-fxos a {
+html[lang="da"],
+html[lang|="en"],
+html[lang="es-AR"],
+html[lang="es-MX"],
+html[lang="eu"],
+html[lang="hi-IN"],
+html[lang="sl"],
+html[lang="tr"] {
+    #tabzilla-promo .snippet#tabzilla-promo-fxos a h4 {
+        margin: 10px 0 20px;
+        font-size: 54px;
+        line-height: .85;
+    }
+}
+
+html[lang="fy-NL"],
+html[lang="hu"],
+html[lang="hy-AM"],
+html[lang="ja"],
+html[lang="ko"],
+html[lang="ku"],
+html[lang="lij"],
+html[lang="mr"],
+html[lang="pa-IN"],
+html[lang="pt-BR"],
+html[lang="sv-SE"],
+html[lang="vi"],
+html[lang|="zh"] {
+    #tabzilla-promo .snippet#tabzilla-promo-fxos a h4 {
+        font-size: 54px;
+    }
+}
+
+html[lang="csb"],
+html[lang="eo"],
+html[lang="gd"],
+html[lang="id"],
+html[lang="ms"],
+html[lang="ru"] {
+    #tabzilla-promo .snippet#tabzilla-promo-fxos a h4 {
+        font-size: 35px;
+    }
+}
+
+html[lang="ml"] {
+    #tabzilla-promo .snippet#tabzilla-promo-fxos a h4 {
+        font-size: 30px;
+    }
+}
+
+html[lang="km"] {
+    #tabzilla-promo .snippet#tabzilla-promo-fxos a h4 {
+        font-family: sans-serif; /* Do not use Open Sans ExtraBoldItalic */
+    }
+}
+
+// MWC 2014 promos
+html[lang='de'] {
+    #tabzilla-promo .snippet#tabzilla-promo-mwc a {
+        h4 {
+            font-size: 38px;
+            line-height: 40px;
+            margin-bottom: 40px;
+        }
+    }
+}
+
+html[lang='el'] {
+    #tabzilla-promo .snippet#tabzilla-promo-mwc a {
+        h4 {
+            font-size: 36px;
+            line-height: 40px;
+            margin-bottom: 40px;
+        }
+    }
+}
+
+html[lang='hu'] {
+    #tabzilla-promo .snippet#tabzilla-promo-mwc a {
+        h4 {
+            font-size: 44px;
+            margin-bottom: 60px;
+        }
+
+        p {
+            width: 120px;
+        }
+    }
+}
+
+html[lang='it'] {
+    #tabzilla-promo .snippet#tabzilla-promo-mwc a {
+        p {
+            width: 115px;
+        }
+    }
+}
+
+html[lang='ja'] {
+    #tabzilla-promo .snippet#tabzilla-promo-mwc a {
+        h4 {
+            font-size: 43px;
+            margin-bottom: 60px;
+        }
+    }
+}
+
+html[lang='sr'],
+html[lang='cs'] {
+    #tabzilla-promo .snippet#tabzilla-promo-mwc a {
+        h4 {
+            font-size: 42px;
+        }
+    }
+}
+
+html[lang|='es'] {
+    #tabzilla-promo .snippet#tabzilla-promo-mwc a {
         h4 {
             font-size: 40px;
         }
     }
+}
+
+html[lang|='zh'] {
+    #tabzilla-promo .snippet#tabzilla-promo-mwc a {
+        h4 {
+            margin-bottom: 78px;
+        }
+    }
+}
+
+@media (-webkit-min-device-pixel-ratio: 1.5),
+       (                min-resolution: 1.5dppx),
+       (                min-resolution: 144dpi) {
+
+    // high res heart icon
+    #tabzilla-panel #tabzilla-nav a.donate:after {
+        background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABcAAAAUCAYAAAERuZaYAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyRpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoTWFjaW50b3NoKSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDoyNjYxRDI1MTRFNDIxMUUzQkU5RkQyMkVEMjBCMTNBMSIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDoyNjYxRDI1MjRFNDIxMUUzQkU5RkQyMkVEMjBCMTNBMSI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOjI2NjFEMjRGNEU0MjExRTNCRTlGRDIyRUQyMEIxM0ExIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjI2NjFEMjUwNEU0MjExRTNCRTlGRDIyRUQyMEIxM0ExIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+75uWVQAAAX5JREFUeNpiXG9kxAAFoSxAwhiIz4B4TEB8FooZAQKIEahMCci4B5IBKbsL0wRSxghlMwIEEEhZKJCxigENgFStBuL3aOKMAAHECLU/FKoABMAWgSz5z4AJwpgYsIN7yC6BAZB9Z2E6YJIgHwmBGAABBLP8HRALIunqhNLlaCYJgRzVgaYYXSEMgNR0gKyuwOJvbACkpgLmViGoe9/jUMgI8wMLmqQQlD4DpU3QdQMEECNyjEOj9CySvDE0BlbDTDdGMo0BKSjRY8eECYtCBhzReIaJgQRAsmIhItUKMUHD04SAQpD8eyakBGSCR+FZdDeDBJRxKcQWi/egfngHpVGSAUCAIcegMTRFuqAZsAeIZyHlKVhsp+FQWwFzDcwld6HJABtwQTLkHh51MLVnoOqUmaCuVSIyekhR18FEZD4jB4CjvhMtPKkBQOZ1wpJKGCyhUepaqDlh2NKhEJmWwAwVQk632DImKZZgNZSYXA+zBJtGfHIkFSnIruskJegAGb9TY9kNOFkAAAAASUVORK5CYII=');
+        background-size: 12px 10px;
+    }
+
 }
 
 @media only screen and (min-width: 720px) and (max-width: 979px) {
@@ -395,6 +615,10 @@ html[lang=ru] {
         margin-bottom: 40px;
     }
 
+    #tabzilla-infobar {
+        position: static;
+        width: 90%;
+    }
 }
 
 @media only screen and (max-width: 719px) {
@@ -513,5 +737,12 @@ html[lang=ru] {
         box-sizing: border-box;
     }
 
-}
+    #tabzilla-infobar {
+        position: static;
+        width: auto;
 
+        div {
+            padding: 10px 20px;
+        }
+    }
+}

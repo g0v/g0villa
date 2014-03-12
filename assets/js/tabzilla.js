@@ -64,7 +64,10 @@
  * @author    Michael Gauthier <mike@silverorange.com>
  * @author    Steven Garrity <steven@silverorange.com>
  * @author    Isac Lagerblad <icaaaq@gmail.com>
+ * @author    Kohei Yoshino <kohei.yoshino@gmail.com>
  */
+
+ // Load mwc 2014 strings from mwc2014_promos.lang only for the locales we target
 
 var Tabzilla = (function (Tabzilla) {
     'use strict';
@@ -226,6 +229,214 @@ var Tabzilla = (function (Tabzilla) {
 
         return tab;
     };
+    Tabzilla.compareVersion = function (a, b) {
+        var num1, num2;
+        a = ('' + a).split('.');
+        b = ('' + b).split('.');
+        while (a.length < b.length) { a.push('0'); }
+        while (b.length < a.length) { b.push('0'); }
+        for (var i = 0; i < a.length; i++) {
+            num1 = parseInt(a[i], 10);
+            num2 = parseInt(b[i], 10);
+            if (num1 > num2) { return 1; }
+            if (num1 < num2) { return -1; }
+        }
+        return 0;
+    };
+    var Infobar = function (id, name) {
+        this.id = id;
+        this.name = name;
+        this.disabled = false;
+        this.prefName = 'tabzilla.infobar.' + id + '.disabled';
+
+        // Read the preference
+        try {
+            if (sessionStorage.getItem(this.prefName) === 'true') {
+                this.disabled = true;
+            }
+        } catch (ex) {}
+
+        // If there is already another infobar, don't show this
+        if ($('#tabzilla-infobar').length) {
+            this.disabled = true;
+        }
+    };
+    Infobar.prototype.show = function (str) {
+        // A infobar can be disabled by pref.
+        // And check the existence of another infobar again
+        if (this.disabled || $('#tabzilla-infobar').length) {
+            return;
+        }
+
+        var self = this;
+        var bar = self.element = $(
+          '<div id="tabzilla-infobar" class="' + self.id + '" role="dialog"><div>'
+        + '<p>' + str.message + '</p><ul>'
+        + '<li><button class="btn-accept" type="button">' + str.accept + '</button></li>'
+        + '<li><button class="btn-cancel" type="button">' + str.cancel + '</button></li>'
+        + '</ul></div></div>').prependTo(panel);
+
+        bar.find('.btn-accept').click(function (event) {
+            event.preventDefault();
+            self.trackEvent(self.onaccept.trackAction || 'accept',
+                            self.onaccept.trackLabel,
+                            0, false, // A user interaction event
+                            self.onaccept.callback);
+            self.hide();
+        });
+
+        bar.find('.btn-cancel').click(function (event) {
+            event.preventDefault();
+            self.trackEvent(self.oncancel.trackAction || 'cancel',
+                            self.oncancel.trackLabel,
+                            0, false, // A user interaction event
+                            self.oncancel.callback);
+            self.hide();
+            try {
+                sessionStorage.setItem(self.prefName, 'true');
+            } catch (ex) {}
+        });
+
+        panel.trigger('infobar-showing');
+        self.trackEvent(self.onshow.trackAction || 'show',
+                        self.onshow.trackLabel,
+                        0, true, // An auto-triggered, non-interaction event
+                        self.onshow.callback);
+
+        if (opened) {
+            bar.css('height', 0)
+               .animate({'height': bar.find('div').outerHeight()}, 200,
+                        function () { panel.trigger('infobar-shown'); });
+        } else {
+            panel.animate({'height': bar.height()}, 200,
+                          function () { panel.trigger('infobar-shown'); });
+        }
+
+        return bar;
+    };
+    Infobar.prototype.hide = function () {
+        var self = this;
+        var target = (opened) ? self.element : panel;
+
+        panel.trigger('infobar-hiding');
+
+        target.animate({'height': 0}, 200, function () {
+            self.element.remove();
+            panel.trigger('infobar-hidden');
+        });
+    };
+    Infobar.prototype.trackEvent = function (action, label, value,
+                                             nonInteraction, callback) {
+        if (typeof(_gaq) !== 'object') {
+            return;
+        }
+
+        // The 5th value and 6th nonInteraction parameters are optional.
+        // See the Google Analytics Developer Guide for details:
+        // https://developers.google.com/analytics/devguides/collection/gajs/eventTrackerGuide
+        window._gaq.push(['_trackEvent', 'Tabzilla - ' + this.name, action,
+                          label, value || 0, nonInteraction || false]);
+
+        if (callback) {
+            var timer = null;
+            var _callback = function () {
+                clearTimeout(timer);
+                callback();
+            };
+            timer = setTimeout(_callback, 500);
+            window._gaq.push(_callback);
+        }
+    };
+    Infobar.prototype.onshow = {};
+    Infobar.prototype.onaccept = {};
+    Infobar.prototype.oncancel = {};
+    Tabzilla.setupTransbar = function (userLang, pageLang) {
+        var transbar = new Infobar('transbar', 'Translation Bar');
+        userLang = userLang || navigator.language || navigator.browserLanguage;
+        pageLang = pageLang || document.documentElement.lang;
+
+        if (transbar.disabled || !userLang || !pageLang) {
+            return false;
+        }
+
+        var userLangLower = userLang.toLowerCase();
+        var userLangShort = userLangLower.split('-')[0];
+        var pageLangLower = pageLang.toLowerCase();
+
+        // Compare the user's language and the page's language
+        if (userLangLower === pageLangLower ||
+                // Consider some legacy locales like fr-FR, it-IT or el-GR
+                userLangShort === pageLangLower) {
+            return false;
+        }
+
+        // Normalize the user language in the form of ab or ab-CD
+        userLang = userLang.replace(/^(\w+)(?:-(\w+))?$/, function (m, p1, p2) {
+            return p1.toLowerCase() + ((p2) ? '-' + p2.toUpperCase() : '');
+        });
+
+        // Check the availability of the translated page for the user.
+        // Use an alternate URL in <head> or a language option in <form>
+        var langLink = $([
+            'link[hreflang="' + userLang + '"]',
+            // The user language can be ab-CD while the page language is ab
+            // (Example: fr-FR vs fr, ja-JP vs ja)
+            'link[hreflang="' + userLangShort + '"]'
+            ].join(','));
+        var langOption = $([
+            '#language [value="' + userLang + '"]',
+            // Languages in the language switcher are uncapitalized on some
+            // sites (AMO, Firefox Flicks)
+            '#language [value="' + userLangLower + '"]',
+            // The user language can be ab-CD while the page language is ab
+            // (Example: fr-FR vs fr, ja-JP vs ja)
+            '#language [value="' + userLangShort + '"]',
+            // Sometimes the value of a language switcher option is the path of
+            // a localized page on some sites (MDN)
+            '#language [value^="/' + userLang + '/"]',
+            '#language [value^="/' + userLangShort + '/"]'
+            ].join(','));
+
+        if (!langLink.length && !langOption.length) {
+            return false;
+        }
+
+        // Do not show Chrome's built-in Translation Bar
+        $('head').append('<meta name="google" value="notranslate">');
+
+        // Normalize the user language again, based on the language of the site
+        userLang = (langLink.length) ? langLink.attr('hreflang')
+                                     : langOption.val();
+
+        // Log the language of the current page
+        transbar.onshow.trackLabel = transbar.oncancel.trackLabel = userLang;
+        transbar.oncancel.trackAction = 'hide';
+
+        // If the user selects Yes, show the translated page
+        transbar.onaccept = {
+            trackAction: 'change',
+            trackLabel: userLang,
+            callback: function () {
+                if (langLink.length) {
+                    location.href = langLink.attr('href').replace(/^https?\:\/\/[^/]+/, '');
+                } else {
+                    langOption.attr('selected', 'selected').get(0).form.submit();
+                }
+            }
+        };
+
+        // Fetch the localized strings and show the Translation Bar
+        $.ajax({ url: '//mozorg.cdn.mozilla.net/' + userLang + '/tabzilla/transbar.jsonp',
+                 cache: true, crossDomain: true, dataType: 'jsonp',
+                 jsonpCallback: "_", success: function (str) {
+            transbar.show(str).attr({
+                'lang': userLang,
+                'dir': ($.inArray(userLang, ['he', 'ar', 'fa']) > -1) ? 'rtl' : 'ltr'
+            });
+        }});
+
+        return true;
+    };
     var setupGATracking = function () {
         // track tabzilla links in GA
         $('#tabzilla-contents').on('click', 'a', function (e) {
@@ -243,10 +454,7 @@ var Tabzilla = (function (Tabzilla) {
                 } else {
                     e.preventDefault();
                     timer = setTimeout(callback, 500);
-                    window._gaq.push(
-                        ['_set', 'hitCallback', callback()],
-                        ['_trackEvent', 'Tabzilla', 'click', href]
-                    );
+                    window._gaq.push(['_trackEvent', 'Tabzilla', 'click', href], callback);
                 }
             }
         });
@@ -266,10 +474,7 @@ var Tabzilla = (function (Tabzilla) {
 
             if (typeof(_gaq) == 'object' && keyword !== '') {
                 timer = setTimeout(callback, 500);
-                window._gaq.push(
-                    ['_set', 'hitCallback', callback()],
-                    ['_trackEvent', 'Tabzilla', 'search', keyword]
-                );
+                window._gaq.push(['_trackEvent', 'Tabzilla', 'search', keyword], callback);
             } else {
                 $form.submit();
             }
@@ -333,11 +538,11 @@ var Tabzilla = (function (Tabzilla) {
         panel.on('keydown', function (event) {
             if (event.which === 27) {
                 event.preventDefault();
-                close();
+                Tabzilla.close();
             }
         });
 
-        tab.attr('aria-label', 'Mozilla links');
+        tab.attr('aria-label', 'Mozilla \u93c8\u7d50');
 
         tab.on('click', function (event) {
             event.preventDefault();
@@ -348,7 +553,28 @@ var Tabzilla = (function (Tabzilla) {
             }
         });
 
+        // Information Bars in order of priority
+        var infobars = {
+            translation: Tabzilla.setupTransbar
+        };
+        $.each((tab.data('infobar') || '').split(' '), function (index, value) {
+            var setup = infobars[value];
+            if (setup) {
+                setup.call();
+            }
+        });
+
         setupGATracking();
+
+        // Careers teaser in error console.
+        $(window).load(function() {
+            try {
+                // Try to only show on stage and production environments.
+                if (/mozill|webmaker|allizom|firefox/.exec(location.hostname)) {
+                    console.log("             _.-~-.\n           7''  Q..\\\n        _7         (_\n      _7  _/    _q.  /\n    _7 . ___  /VVvv-'_                                            .\n   7/ / /~- \\_\\\\      '-._     .-'                      /       //\n  ./ ( /-~-/||'=.__  '::. '-~'' {             ___   /  //     ./{\n V   V-~-~| ||   __''_   ':::.   ''~-~.___.-'' _/  // / {_   /  {  /\n  VV/-~-~-|/ \\ .'__'. '.    '::                     _ _ _        ''.\n  / /~~~~||VVV/ /  \\ )  \\        _ __ ___   ___ ___(_) | | __ _   .::'\n / (~-~-~\\\\.-' /    \\'   \\::::. | '_ ` _ \\ / _ \\_  / | | |/ _` | :::'\n/..\\    /..\\__/      '     '::: | | | | | | (_) / /| | | | (_| | ::'\nvVVv    vVVv                 ': |_| |_| |_|\\___/___|_|_|_|\\__,_| ''\n\nHi there, nice to meet you!\n\nInterested in having a direct impact on hundreds of millions of users? Join\nMozilla, and become part of a global community that\u2019s helping to build a\nbrighter future for the Web.\n\nVisit https://careers.mozilla.org to learn about our current job openings.\nVisit https://www.mozilla.org/contribute for more ways to get involved and\nhelp support Mozilla.");
+                }
+            } catch(e) {}
+        });
     };
     var loadJQuery = function (callback) {
         var noConflictCallback = function() {
@@ -371,20 +597,79 @@ var Tabzilla = (function (Tabzilla) {
         script.src = '//mozorg.cdn.mozilla.net/media/js/libs/jquery-' + minimumJQuery + '.min.js';
         document.getElementsByTagName('head')[0].appendChild(script);
     };
-    var compareVersion = function (a, b) {
-        a = ('' + a).split('.');
-        b = ('' + b).split('.');
-        while (a.length < b.length) { a.push('0'); }
-        while (b.length < a.length) { b.push('0'); }
-        for (var i = 0; i < a.length; i++) {
-            if (a[i] > b[i]) { return 1; }
-            if (a[i] < b[i]) { return -1; }
-        }
-        return 0;
-    };
+    // icn=tabz appended to links for Google Analytics purposes
+    var content =
+      '<div id="tabzilla-panel" class="tabzilla-closed" tabindex="-1">'
+    + '  <div id="tabzilla-contents">'
+    + '    <div id="tabzilla-promo">'
+    +'      <div class="snippet" id="tabzilla-promo-fxos">'
+    + '        <a href="https://www.mozilla.org/firefox/os/?icn=tabz">'
+    + '          <h4>Look ahead</h4>'
+    + '          <p>\u4e86\u89e3 Firefox OS \u7684\u66f4\u591a\u8cc7\u8a0a »</p>'
+    + '        </a>'
+    + '      </div>'
+    + '    </div>'
+    + '    <div id="tabzilla-nav">'
+    + '      <ul>'
+    + '        <li><h2>Mozilla</h2>'
+    + '          <div>'
+    + '            <ul>'
+    + '              <li><a href="https://www.mozilla.org/mission/?icn=tabz">\u4f7f\u547d</a></li>'
+    + '              <li><a href="https://www.mozilla.org/about/?icn=tabz">\u95dc\u65bc</a></li>'
+    + '              <li><a href="https://www.mozilla.org/projects/?icn=tabz">\u5c08\u6848</a></li>'
+    + '              <li><a href="https://support.mozilla.org/?icn=tabz">\u652f\u63f4</a></li>'
+    + '              <li><a href="https://developer.mozilla.org/?icn=tabz">\u958b\u767c\u8005\u7db2\u8def</a></li>'
+    + '            </ul>'
+    + '          </div>'
+    + '        </li>'
+    + '        <li><h2>\u7522\u54c1</h2>'
+    + '          <div>'
+    + '            <ul>'
+    + '              <li><a href="https://www.mozilla.org/firefox/?icn=tabz">Firefox</a></li>'
+    + '              <li><a href="https://www.mozilla.org/thunderbird/?icn=tabz">Thunderbird</a></li>'
+    + '              <li><a href="https://www.mozilla.org/firefox/os/?icn=tabz">Firefox OS</a></li>'
+    + '            </ul>'
+    + '          </div>'
+    + '        </li>'
+    + '        <li><h2>\u5275\u65b0</h2>'
+    + '          <div>'
+    + '            <ul>'
+    + '              <li><a href="https://webfwd.org/?icn=tabz">WebFWD</a></li>'
+    + '              <li><a href="https://mozillalabs.com/?icn=tabz">Labs</a></li>'
+    + '              <li><a href="https://webmaker.org/?icn=tabz">Webmaker</a></li>'
+    + '              <li><a href="https://www.mozilla.org/research/?icn=tabz">Research</a></li>'
+    + '            </ul>'
+    + '          </div>'
+    + '        </li>'
+    + '        <li><h2>\u53c3\u8207\u6211\u5011</h2>'
+    + '          <div>'
+    + '            <ul>'
+    + '              <li><a href="https://www.mozilla.org/contribute/?icn=tabz">\u5fd7\u5de5\u6a5f\u6703</a></li>'
+    + '              <li><a href="https://www.mozilla.org/en-US/about/careers.html?icn=tabz">\u5fb5\u624d\u555f\u4e8b</a></li>'
+    + '              <li><a href="https://www.mozilla.org/en-US/about/mozilla-spaces/?icn=tabz">\u5c0b\u627e\u6211\u5011</a></li>'
+    + '              <li><a href="https://sendto.mozilla.org/page/contribute/EOYFR2013-tabzilla?icn=tabz&amp;source=tabzilla_donate&amp;amount=20" class="donate">\u6350\u6b3e\u652f\u6301</a></li>'
+    + '              <li><a href="https://www.mozilla.org/about/partnerships/?icn=tabz">\u6210\u70ba\u5925\u4f34</a></li>'
+    + '            </ul>'
+    + '          </div>'
+    + '        </li>'
+    + '        <li id="tabzilla-search">'
+    + '          <a href="https://www.mozilla.org/community/directory.html?icn=tabz">\u7db2\u7ad9\u76ee\u9304</a>'
+    + '          <form title="\u641c\u5c0b Mozilla \u7db2\u7ad9" role="search" action="https://www.google.com/cse">'
+    + '            <input type="hidden" value="002443141534113389537:ysdmevkkknw" name="cx">'
+    + '            <input type="hidden" value="FORID:0" name="cof">'
+    + '            <label for="q">\u641c\u5c0b</label>'
+    + '            <input type="search" placeholder="\u641c\u5c0b" id="q" name="q">'
+    + '          </form>'
+    + '        </li>'
+    + '      </ul>'
+    + '    </div>'
+    + '  </div>';
+    + '</div>';
+
+    // Self-executing function must be after all vars have been initialized
     (function () {
         if (window.jQuery !== undefined &&
-            compareVersion(window.jQuery.fn.jquery, minimumJQuery) !== -1
+            Tabzilla.compareVersion(window.jQuery.fn.jquery, minimumJQuery) !== -1
         ) {
             // set up local jQuery aliases
             jQuery = window.jQuery;
@@ -395,73 +680,6 @@ var Tabzilla = (function (Tabzilla) {
             loadJQuery(init);
         }
     })();
-    var content =
-      '<div id="tabzilla-panel" class="tabzilla-closed" tabindex="-1">'
-    + '  <div id="tabzilla-contents">'
-    + '    <div id="tabzilla-promo">'
-    + '      <div class="snippet" id="tabzilla-promo-fxos">'
-    + '        <a href="https://www.mozilla.org/firefox/os/?icn=tabz">'
-    + '          <h4>Look ahead</h4>'
-    + '          <p>Learn all about Firefox OS Â»</p>'
-    + '        </a>'
-    + '      </div>'
-    + '    </div>'
-    + '    <div id="tabzilla-nav">'
-    + '      <ul>'
-    + '        <li><h2>Mozilla</h2>'
-    + '          <div>'
-    + '            <ul>'
-    + '              <li><a href="https://www.mozilla.org/mission/?icn=tabz">Mission</a></li>'
-    + '              <li><a href="https://www.mozilla.org/about/?icn=tabz">About</a></li>'
-    + '              <li><a href="https://www.mozilla.org/projects/?icn=tabz">Projects</a></li>'
-    + '              <li><a href="https://support.mozilla.org/?icn=tabz">Support</a></li>'
-    + '              <li><a href="https://developer.mozilla.org/?icn=tabz">Developer Network</a></li>'
-    + '            </ul>'
-    + '          </div>'
-    + '        </li>'
-    + '        <li><h2>Products</h2>'
-    + '          <div>'
-    + '            <ul>'
-    + '              <li><a href="https://www.mozilla.org/firefox/?icn=tabz">Firefox</a></li>'
-    + '              <li><a href="https://www.mozilla.org/thunderbird/?icn=tabz">Thunderbird</a></li>'
-    + '              <li><a href="https://www.mozilla.org/firefox/os/?icn=tabz">Firefox OS</a></li>'
-    + '            </ul>'
-    + '          </div>'
-    + '        </li>'
-    + '        <li><h2>Innovations</h2>'
-    + '          <div>'
-    + '            <ul>'
-    + '              <li><a href="https://webfwd.org/?icn=tabz">WebFWD</a></li>'
-    + '              <li><a href="https://mozillalabs.com/?icn=tabz">Labs</a></li>'
-    + '              <li><a href="https://webmaker.org/?icn=tabz">Webmaker</a></li>'
-    + '              <li><a href="https://www.mozilla.org/research/?icn=tabz">Research</a></li>'
-    + '            </ul>'
-    + '          </div>'
-    + '        </li>'
-    + '        <li><h2>Get Involved</h2>'
-    + '          <div>'
-    + '            <ul>'
-    + '              <li><a href="https://www.mozilla.org/contribute/?icn=tabz">Volunteer</a></li>'
-    + '              <li><a href="https://www.mozilla.org/en-US/about/careers.html?icn=tabz">Careers</a></li>'
-    + '              <li><a href="https://www.mozilla.org/en-US/about/mozilla-spaces/?icn=tabz">Find us</a></li>'
-    + '              <li><a href="https://sendto.mozilla.org/Join-Tabzilla/?icn=tabz">Donate</a></li>'
-    + '              <li><a href="https://www.mozilla.org/about/partnerships/?icn=tabz">Partner</a></li>'
-    + '            </ul>'
-    + '          </div>'
-    + '        </li>'
-    + '        <li id="tabzilla-search">'
-    + '          <a href="https://www.mozilla.org/community/directory.html?icn=tabz">Website Directory</a>'
-    + '          <form title="Search Mozilla sites" role="search" action="https://www.google.com/cse">'
-    + '            <input type="hidden" value="002443141534113389537:ysdmevkkknw" name="cx">'
-    + '            <input type="hidden" value="FORID:0" name="cof">'
-    + '            <label for="q">Search</label>'
-    + '            <input type="search" placeholder="Search" id="q" name="q">'
-    + '          </form>'
-    + '        </li>'
-    + '      </ul>'
-    + '    </div>'
-    + '  </div>';
-    + '</div>';
 
     return Tabzilla;
 
