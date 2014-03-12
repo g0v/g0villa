@@ -26,7 +26,7 @@
 #tabzilla {
   float: right;
   display: block;
-  background: url('/media/img/tabzilla/tab.png');
+  background: url('images/tab.png');
   height: 44px;
   width: 150px;
   position: relative;
