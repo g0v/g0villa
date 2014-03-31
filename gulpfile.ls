@@ -22,6 +22,8 @@ gulp.task 'img' ->
     .pipe gulp.dest '_public/images'
 
 gulp.task \express, ->
+  gulp.src 'index.html'
+    .pipe gulp.dest "#{build-path}"
   require! express
   app = express!
   EXPRESSPORT = 3000
