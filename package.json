@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "gulp --require LiveScript dev",
+    "dev": "gulp --require LiveScript",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -16,7 +16,7 @@
   "bugs": {
     "url": "https://github.com/g0v/g0villa/issues"
   },
-  "homepage": "https://github.com/yhsiang/env.g0v.tw",
+  "homepage": "https://github.com/g0v/g0villa",
   "devDependencies": {
     "LiveScript": "~1.2.0",
     "gulp-util": "~2.2.14",
