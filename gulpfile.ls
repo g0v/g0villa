@@ -1,4 +1,4 @@
-require! <[ gulp gulp-util gulp-less gulp-jade gulp-insert gulp-concat streamqueue]>
+require! <[ gulp gulp-util gulp-less gulp-jade gulp-insert gulp-concat streamqueue path]>
 
 build-path = '_public'
 
@@ -22,12 +22,10 @@ gulp.task 'img' ->
     .pipe gulp.dest '_public/images'
 
 gulp.task \express, ->
-  gulp.src 'index.html'
-    .pipe gulp.dest "#{build-path}"
   require! express
   app = express!
   EXPRESSPORT = 3000
-  app.use express.static "#build-path"
+  app.use express.static path.resolve!
   app.listen EXPRESSPORT
   gulp-util.log "Server available at http://localhost:#EXPRESSPORT"
 
